@@ -25,6 +25,7 @@ void Engine::init(const std::string& config)
 	}
 
 	m_window.create(sf::VideoMode(winConf.W, winConf.H), winConf.T, sf::Style::Close);
+	std::cout << winConf.FL << " fps" << std::endl;
 	m_window.setFramerateLimit(winConf.FL);
 
 	changeScene("PLAY", std::make_shared<ScenePlay>(this));
@@ -96,7 +97,7 @@ void Engine::sUserInput()
 
 			const std::string& actionType = (event.type == sf::Event::KeyPressed) ? "START" : "END";
 
-
+			//std::cout << currentScene()->getActionMap().at(event.key.code) << std::endl;
 			currentScene()->sDoAction(
 				Action(
 					currentScene()->getActionMap().at(event.key.code), 

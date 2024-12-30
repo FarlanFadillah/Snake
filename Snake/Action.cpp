@@ -10,12 +10,12 @@ Action::Action(const std::string& name, const std::string& type)
 {
 }
 
-const std::string& Action::name()
+const std::string& Action::name() const
 {
 	return m_name;
 }
 
-const std::string& Action::type()
+const std::string& Action::type() const
 {
 	return m_type;
 }

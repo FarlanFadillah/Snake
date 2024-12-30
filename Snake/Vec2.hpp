@@ -32,4 +32,5 @@ public:
 	float dist(const Vec2& rhs) const;
 	float length() const;
 	void normalize();
+	const Vec2& randomVec(const int x, const int y);
 };

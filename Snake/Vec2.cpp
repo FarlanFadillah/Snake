@@ -104,4 +104,11 @@ void Vec2::normalize()
 	(*this) /= len;
 }
 
+const Vec2& Vec2::randomVec(const int _x, const int _y)
+{
+	int x = std::rand() % _x;
+	int y = std::rand() % _y;
+	return Vec2(x, y);
+}
+
 
