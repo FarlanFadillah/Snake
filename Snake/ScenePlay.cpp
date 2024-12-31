@@ -13,28 +13,54 @@ ScenePlay::ScenePlay(Engine* engine)
 	registerAction(sf::Keyboard::S, "DOWN");
 	registerAction(sf::Keyboard::D, "RIGHT");
 	registerAction(sf::Keyboard::W, "UP");
+	registerAction(sf::Keyboard::Add, "GROW");
 
 
-	spawnSnake(Vec2(25, 19));
+	spawnSnake();
 	spawnFood();
+
+	tnr.loadFromFile("res/fonts/Times_New_Roman.ttf");
 }
 
-void ScenePlay::spawnSnake(const Vec2& pos)
+void ScenePlay::spawnSnake()
 {
 	auto snake = m_entityManager.addEntity("snake");
 
-	snake->addComponent<CNode>(pos);
+	snake->addComponent<CNode>(Vec2(25, 19));
 
 	snake->addComponent<CState>();
 
 	player = snake;
 }
 
+void ScenePlay::growSnake()
+{
+	auto& body = player->getComponent<CNode>().body;
+	auto& tail = body.back();
+	auto& tailprev = body.at(body.size() - 2);
+
+	Vec2 newPos(tail - tailprev);
+	newPos += tail;
+
+	body.push_back(Vec2(newPos)); 
+}
+
 void ScenePlay::spawnFood()
 {
 	// world size 50 x 38	
-	int x = std::rand() % 50;
-	int y = std::rand() % 38;
+	int x = std::rand() % 49;
+	int y = std::rand() % 37;
+
+	Vec2 pos(x, y);
+
+	for (auto& e : player->getComponent<CNode>().body)
+	{
+		if (e == pos)
+		{
+			spawnFood();
+			return;
+		}
+	}
 
 	auto food = m_entityManager.addEntity("food");
 	food->addComponent<CTransform>(Vec2(x, y));
@@ -58,10 +84,17 @@ const Vec2& ScenePlay::getRectGrid(const Vec2& pos, const int rectSize)
 
 void ScenePlay::sMovement()
 {
-	if (currentFrame % 15 != 0) return;
+	if (currentFrame % 5 != 0) return;
 	auto& node = player->getComponent<CNode>();
 	auto& state = player->getComponent<CState>();
 	auto& body = node.body;
+
+	if (!commandList.empty())
+	{
+		state.state = *commandList.begin();
+		commandList.erase(commandList.begin());
+	}
+
 	for (int i = node.body.size()-1; i >= 0; i--)
 	{
 		auto& currentElement = body.at(i);
@@ -89,8 +122,13 @@ void ScenePlay::sMovement()
 				currentElement.x++;
 			}
 		}
-
 	}
+	auto& head = body.front();
+	//collision with frame bound
+	if (head.x < 0) head.x = winGrid.x;
+	else if (head.x > winGrid.x) head.x = 0;
+	else if (head.y < 0) head.y = winGrid.y;
+	else if (head.y > winGrid.y) head.y = 0;
 }
 
 void ScenePlay::sCollision()
@@ -108,13 +146,7 @@ void ScenePlay::sCollision()
 		if (ctf.pos == head)
 		{
 			f->destroy();
-			auto& tail = body.back();
-			auto& tailprev = body.at(body.size() - 2);
-
-			Vec2 newPos(tailprev - tail);
-			newPos += tail;
-
-			node.body.push_back(Vec2(newPos));
+			growSnake();
 			spawnFood();
 		}
 
@@ -122,12 +154,18 @@ void ScenePlay::sCollision()
 	}
 
 	//collision with the body it self
+	for (int i = 1; i < body.size(); i++)
+	{
+		if (head == body.at(i))
+		{
+			player->destroy();
+			spawnSnake();
+		}
+	}
+
+
+
 	
-
-
-
-	//collision with frame bound
-
 }
 
 void ScenePlay::update()
@@ -154,7 +192,7 @@ void ScenePlay::sRender()
 	rect.setFillColor(sf::Color::Yellow);
 	rect.setOrigin(rectSize/2, rectSize/2);
 
-	Vec2 rectPos = getRectGrid(Vec2(65, 15), rectSize);
+	Vec2 rectPos = getRectGrid(winGrid, rectSize);
 
 	rect.setPosition(rectPos.x, rectPos.y);
 	window.draw(rect);*/
@@ -182,6 +220,7 @@ void ScenePlay::sRender()
 		}
 	}
 
+	// draw food
 	for (auto& e : m_entityManager.getEntities("food"))
 	{
 		auto& pos = e->getComponent<CTransform>();
@@ -195,6 +234,16 @@ void ScenePlay::sRender()
 		window.draw(rect);
 	}
 
+	// draw score
+	auto& body = player->getComponent<CNode>().body;
+	sf::Text text;
+	text.setFont(tnr);
+	std::cout << body.size() << std::endl;
+	text.setString(std::to_string(body.size()-2));
+	text.setFillColor(sf::Color::White);
+	text.setPosition(100, 100);
+
+	window.draw(text);
 }
 
 void ScenePlay::sDoAction(const Action& action)
@@ -205,22 +254,30 @@ void ScenePlay::sDoAction(const Action& action)
 		if (action.name() == "UP")
 		{
 			if (playerState.state == "down") return;
-			playerState.state = "up";
+			commandList.insert("up");
+			//playerState.state = "up";
 		}
 		else if (action.name() == "DOWN")
 		{
 			if (playerState.state == "up") return;
-			playerState.state = "down";
+			commandList.insert("down");
+			//playerState.state = "down";
 		}
 		else if (action.name() == "LEFT")
 		{
 			if (playerState.state == "right") return;
-			playerState.state = "left";
+			commandList.insert("left");
+			//playerState.state = "left";
 		}
 		else if (action.name() == "RIGHT")
 		{
 			if (playerState.state == "left") return;
-			playerState.state = "right";
+			commandList.insert("right");
+			//playerState.state = "right";
+		}
+		else if (action.name() == "GROW")
+		{
+			growSnake();
 		}
 	}
 	else if(action.type() == "END")
