@@ -238,7 +238,6 @@ void ScenePlay::sRender()
 	auto& body = player->getComponent<CNode>().body;
 	sf::Text text;
 	text.setFont(tnr);
-	std::cout << body.size() << std::endl;
 	text.setString(std::to_string(body.size()-2));
 	text.setFillColor(sf::Color::White);
 	text.setPosition(100, 100);
